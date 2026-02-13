@@ -86,6 +86,12 @@
 		return geoJsonScore <= latLonScore ? geoJsonOrder : latLonOrder;
 	}
 
+	function clearRoutePlot() {
+		if (routeLayerGroup) routeLayerGroup.clearLayers();
+		if (routePolyline && map) map.removeLayer(routePolyline);
+		routePolyline = null;
+	}
+
 	// Helper to update state
 	const updateState = (updates: Partial<MapState>) => {
 		if (updates.statusText !== undefined) statusText = updates.statusText;
@@ -98,6 +104,10 @@
 			// Remove old marker from map if it exists
 			if (endMarker) map.removeLayer(endMarker);
 			endMarker = updates.endMarker;
+		}
+
+		if (!startMarker || !endMarker) {
+			clearRoutePlot();
 		}
 	};
 
@@ -129,9 +139,7 @@
 	}
 
 	function resetMapWrapper() {
-		if (routeLayerGroup) routeLayerGroup.clearLayers();
-		if (routePolyline) map.removeLayer(routePolyline);
-		routePolyline = null;
+		clearRoutePlot();
 		resetMap(map, { statusText, startMarker, endMarker }, updateState);
 
 		// Reset map view to original position
@@ -173,9 +181,7 @@
 			const distanceKm = data.geojson.properties.distanceKm;
 
 			// Remove existing route if any
-			if (routeLayerGroup) routeLayerGroup.clearLayers();
-			if (routePolyline) map.removeLayer(routePolyline);
-			routePolyline = null;
+			clearRoutePlot();
 
 			if (!routeLayerGroup) {
 				routeLayerGroup = L.layerGroup().addTo(map);
