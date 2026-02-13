@@ -25,6 +25,9 @@
 	let endMarker = $state<Marker | null>(null);
 	let routePolyline = $state<Polyline | null>(null);
 	let routeMetadata = $state<RouteMetadata | null>(null);
+	let searchQuery = $state('');
+	let searchResults = $state<any[]>([]);
+	let isSearching = $state(false);
 
 	type RouteStyle = 'dotted' | 'solid';
 	const routeStyle: RouteStyle = 'dotted';
@@ -132,28 +135,28 @@
 
 	onMount(() => {
 		// Dynamic import for SSR compatibility
-		   (async () => {
-			   L = await import('leaflet');
+		(async () => {
+			L = await import('leaflet');
 
-			   // Fix Leaflet marker icon paths for production
-			   L.Icon.Default.mergeOptions({
-				   iconRetinaUrl: '/leaflet-images/marker-icon-2x.png',
-				   iconUrl: '/leaflet-images/marker-icon.png',
-				   shadowUrl: '/leaflet-images/marker-shadow.png'
-			   });
+			// Fix Leaflet marker icon paths for production
+			L.Icon.Default.mergeOptions({
+				iconRetinaUrl: '/leaflet-images/marker-icon-2x.png',
+				iconUrl: '/leaflet-images/marker-icon.png',
+				shadowUrl: '/leaflet-images/marker-shadow.png'
+			});
 
-			   if (mapContainer) {
-				   map = L.map(mapContainer, { zoomControl: false }).setView([12.9716, 77.5946], 13);
+			if (mapContainer) {
+				map = L.map(mapContainer, { zoomControl: false }).setView([12.9716, 77.5946], 13);
 
-				   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-					   attribution: '&copy; OpenStreetMap contributors'
-				   }).addTo(map);
+				L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+					attribution: '&copy; OpenStreetMap contributors'
+				}).addTo(map);
 
-				   routeLayerGroup = L.layerGroup().addTo(map);
+				routeLayerGroup = L.layerGroup().addTo(map);
 
-				   map.on('click', handleMapClickWrapper);
-			   }
-		   })();
+				map.on('click', handleMapClickWrapper);
+			}
+		})();
 
 		return () => {
 			if (map) map.remove();
@@ -269,6 +272,35 @@
 			<h1>🌙 QuietRoute</h1>
 			<p class="subtitle">Bangalore Safety Navigation</p>
 		</header>
+
+		<div class="search-wrapper" aria-busy={isSearching}>
+			<label class="search-label" for="search-input">Search places</label>
+			<input
+				id="search-input"
+				type="search"
+				name="place-search"
+				placeholder="Search for a place"
+				autocomplete="off"
+				bind:value={searchQuery}
+			/>
+
+			{#if searchResults.length}
+				<ul class="search-dropdown" role="listbox">
+					{#each searchResults as feature, index (index)}
+						{@const name = feature?.properties?.name ?? 'Unknown place'}
+						{@const location = feature?.properties?.city ?? feature?.properties?.district ?? ''}
+						<li role="option" aria-selected="false">
+							<button type="button" class="search-option">
+								<span class="place-name">{name}</span>
+								{#if location}
+									<span class="place-location">{location}</span>
+								{/if}
+							</button>
+						</li>
+					{/each}
+				</ul>
+			{/if}
+		</div>
 
 		<div class="status-box">
 			<p class="status-text">{statusText}</p>
@@ -386,6 +418,114 @@
 		margin: 4px 0 16px;
 		font-size: 0.875rem;
 		color: #64748b;
+	}
+
+	.search-wrapper {
+		position: relative;
+		display: grid;
+		gap: 0.75rem;
+		margin-bottom: 12px;
+	}
+
+	.search-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		padding: 0;
+		margin: -1px;
+		overflow: hidden;
+		clip: rect(0, 0, 0, 0);
+		white-space: nowrap;
+		border: 0;
+	}
+
+	.search-wrapper input[type='search'] {
+		appearance: none;
+		width: 100%;
+		padding: 0.7rem 0.9rem;
+		border-radius: 0.85rem;
+		border: 1px solid rgba(15, 23, 42, 0.16);
+		background: rgba(248, 250, 252, 0.9);
+		color: #0f172a;
+		backdrop-filter: blur(12px);
+		box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.08);
+		outline: none;
+		font-size: 0.9rem;
+	}
+
+	.search-wrapper input[type='search']::placeholder {
+		color: rgba(15, 23, 42, 0.5);
+	}
+
+	.search-wrapper input[type='search']:focus {
+		border-color: rgba(37, 99, 235, 0.4);
+		box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.18);
+	}
+
+	.search-dropdown {
+		position: absolute;
+		top: calc(100% + 0.5rem);
+		left: 0;
+		right: 0;
+		max-height: 16rem;
+		overflow-y: auto;
+		padding: 0.4rem;
+		margin: 0;
+		list-style: none;
+		border-radius: 0.9rem;
+		border: 1px solid rgba(15, 23, 42, 0.12);
+		background: rgba(255, 255, 255, 0.94);
+		backdrop-filter: blur(18px);
+		box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+		z-index: 20;
+	}
+
+	.search-option {
+		width: 100%;
+		padding: 0.6rem 0.75rem;
+		display: flex;
+		flex-direction: column;
+		gap: 0.2rem;
+		border-radius: 0.7rem;
+		border: none;
+		background: transparent;
+		color: #0f172a;
+		text-align: left;
+		cursor: pointer;
+		transition:
+			background 160ms ease,
+			transform 160ms ease;
+	}
+
+	.search-option:hover,
+	.search-option:focus-visible {
+		background: rgba(37, 99, 235, 0.12);
+		transform: translateY(-1px);
+		outline: none;
+	}
+
+	.place-name {
+		font-weight: 600;
+		letter-spacing: 0.01em;
+	}
+
+	.place-location {
+		font-size: 0.82rem;
+		color: rgba(15, 23, 42, 0.6);
+	}
+
+	.search-dropdown::-webkit-scrollbar {
+		width: 8px;
+	}
+
+	.search-dropdown::-webkit-scrollbar-thumb {
+		background: rgba(15, 23, 42, 0.2);
+		border-radius: 999px;
+	}
+
+	.search-dropdown::-webkit-scrollbar-track {
+		background: rgba(15, 23, 42, 0.08);
+		border-radius: 999px;
 	}
 
 	.status-text {
