@@ -1,0 +1,122 @@
+<script lang="ts">
+	import { onMount } from 'svelte';
+	import 'leaflet/dist/leaflet.css';
+	import type { LatLng, Map, Marker } from 'leaflet';
+
+	import { browser } from '$app/environment';
+
+	if (!browser) {
+		throw new Error('This component can only be rendered on the client');
+	}
+
+	// State
+	let mapContainer: HTMLElement;
+	let statusText = $state<string>("Click the map to set markers.");
+
+	// Leaflet Instances
+	let map: Map;
+	let L: typeof import('leaflet');
+	let startMarker = $state<Marker | null>(null);
+	let endMarker = $state<Marker | null>(null);
+
+	onMount(() => {
+		// Dynamic import for SSR compatibility
+		(async () => {
+			L = await import('leaflet');
+
+			if (mapContainer) {
+				map = L.map(mapContainer, { zoomControl: false }).setView([12.9716, 77.5946], 13);
+
+				L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+					attribution: '&copy; OpenStreetMap contributors'
+				}).addTo(map);
+
+				map.on('click', handleMapClick);
+			}
+		})();
+
+		return () => {
+			if (map) map.remove();
+		};
+	});
+
+	function handleMapClick(e: { latlng: LatLng }) {
+		if (!startMarker) {
+			startMarker = L.marker(e.latlng).addTo(map).bindPopup("Start").openPopup();
+			statusText = "Start set! Click again for destination.";
+		} else if (!endMarker) {
+			endMarker = L.marker(e.latlng).addTo(map).bindPopup("Destination").openPopup();
+			statusText = "Both markers set!";
+		}
+	}
+
+	function resetMap() {
+		if (startMarker) map.removeLayer(startMarker);
+		if (endMarker) map.removeLayer(endMarker);
+
+		startMarker = null;
+		endMarker = null;
+
+		statusText = "Click the map to set markers.";
+	}
+</script>
+
+<main class="app-container">
+	<section class="control-panel">
+		<header>
+			<h1>🌙 QuietRoute</h1>
+			<p class="subtitle">Bangalore Safety Navigation</p>
+		</header>
+
+		<div class="status-box">
+			<p class="status-text">{statusText}</p>
+		</div>
+
+		<button
+			class="reset-btn"
+			disabled={!startMarker && !endMarker}
+			onclick={resetMap}
+		>
+			Reset Map
+		</button>
+	</section>
+
+	<div
+		bind:this={mapContainer}
+		class="map-view"
+		role="application"
+	></div>
+</main>
+
+<style>
+    :global(body) { margin: 0; font-family: 'Inter', sans-serif; overflow: hidden; }
+
+    .app-container { position: relative; height: 100vh; width: 100vw; }
+    .map-view { height: 100%; width: 100%; z-index: 1; }
+
+    /* Glassmorphism Panel */
+    .control-panel {
+        position: absolute; top: 20px; left: 20px; z-index: 1000;
+        width: 320px; padding: 24px;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        border: 1px solid rgba(255,255,255,0.5);
+    }
+
+    h1 { margin: 0; font-size: 1.5rem; color: #0f172a; }
+    .subtitle { margin: 4px 0 16px; font-size: 0.875rem; color: #64748b; }
+
+    .status-text { font-weight: 500; color: #334155; margin-bottom: 16px; }
+
+    .reset-btn {
+        width: 100%; padding: 12px;
+        background: #0f172a; color: white;
+        border: none; border-radius: 8px;
+        font-weight: 600; cursor: pointer;
+        transition: all 0.2s;
+    }
+    .reset-btn:hover:not(:disabled) { background: #1e293b; transform: translateY(-1px); }
+    .reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
