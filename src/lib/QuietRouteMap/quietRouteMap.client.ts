@@ -48,6 +48,10 @@ export async function handleMapClick(
     state: MapState,
     updateState: (updates: Partial<MapState>) => void
 ) {
+    if (state.startMarker && state.endMarker) {
+        return;
+    }
+
     // Check if point is near a road and relocate if needed
     const nearestRoad = await checkNearestRoad(e.latlng.lat, e.latlng.lng);
 
@@ -63,6 +67,7 @@ export async function handleMapClick(
 
     if (!state.startMarker) {
         const marker = L.marker(finalLatLng).addTo(map).bindPopup('Start (click to remove)').openPopup();
+        map.flyTo(finalLatLng, Math.max(map.getZoom(), 16), { animate: true, duration: 0.6 });
         marker.on('click', (event) => {
             event.originalEvent.stopPropagation();
             removeStartMarker(map, updateState);
@@ -76,6 +81,7 @@ export async function handleMapClick(
             .addTo(map)
             .bindPopup('Destination (click to remove)')
             .openPopup();
+        map.flyTo(finalLatLng, Math.max(map.getZoom(), 16), { animate: true, duration: 0.6 });
         marker.on('click', (event) => {
             event.originalEvent.stopPropagation();
             removeEndMarker(map, state, updateState);
