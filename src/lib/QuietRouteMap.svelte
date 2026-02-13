@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { fly } from 'svelte/transition';
 	import 'leaflet/dist/leaflet.css';
 	import type { LatLng, Map, Marker } from 'leaflet';
 	import { handleMapClick, type MapState, resetMap } from './quietRouteMap.client';
@@ -84,13 +85,16 @@
 		>
 			Reset Map
 		</button>
-
-		{#if startMarker && endMarker}
-			<button class="find-route-btn">
-				Find Route
-			</button>
-		{/if}
 	</section>
+
+	{#if startMarker && endMarker}
+		<button
+			class="find-route-btn"
+			transition:fly={{ y: -100, duration: 500, opacity: 1 }}
+		>
+			Find Route
+		</button>
+	{/if}
 
 	<CoordinatesBox {endMarker} {startMarker} />
 
@@ -134,26 +138,28 @@
     .reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .find-route-btn {
-        width: 100%; padding: 12px;
-        margin-top: 12px;
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1000;
+        padding: 14px 32px;
         background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
         color: white;
-        border: none; border-radius: 8px;
-        font-weight: 600; cursor: pointer;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.4);
         transition: all 0.2s;
-        animation: slideIn 0.4s ease-out;
     }
-    .find-route-btn:hover { background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); transform: translateY(-1px); }
-    .find-route-btn:active { transform: translateY(0); }
-
-    @keyframes slideIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .find-route-btn:hover {
+        background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%);
+        transform: translateX(-50%) translateY(-2px);
+        box-shadow: 0 12px 35px rgba(59, 130, 246, 0.5);
+    }
+    .find-route-btn:active {
+        transform: translateX(-50%) translateY(0);
     }
 </style>
