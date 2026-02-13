@@ -38,14 +38,6 @@ export function handleMapClick(
 			endMarker: marker,
 			statusText: 'Both markers set!'
 		});
-
-		// Show alert with coordinates
-		const startLat = state.startMarker.getLatLng().lat.toFixed(6);
-		const startLon = state.startMarker.getLatLng().lng.toFixed(6);
-		const endLat = e.latlng.lat.toFixed(6);
-		const endLon = e.latlng.lng.toFixed(6);
-
-		alert(`Start: (${startLat}, ${startLon})\nEnd: (${endLat}, ${endLon})`);
 	}
 }
 

@@ -85,7 +85,30 @@
 		>
 			Reset Map
 		</button>
+
+		{#if startMarker && endMarker}
+			<button class="find-route-btn">
+				Find Route
+			</button>
+		{/if}
 	</section>
+
+	{#if startMarker && endMarker}
+		<div class="coordinates-box">
+			<div class="coord-item">
+				<span class="coord-label">Start:</span>
+				<span class="coord-value">
+					{startMarker.getLatLng().lat.toFixed(6)}, {startMarker.getLatLng().lng.toFixed(6)}
+				</span>
+			</div>
+			<div class="coord-item">
+				<span class="coord-label">End:</span>
+				<span class="coord-value">
+					{endMarker.getLatLng().lat.toFixed(6)}, {endMarker.getLatLng().lng.toFixed(6)}
+				</span>
+			</div>
+		</div>
+	{/if}
 
 	<div
 		bind:this={mapContainer}
@@ -125,4 +148,68 @@
     }
     .reset-btn:hover:not(:disabled) { background: #1e293b; transform: translateY(-1px); }
     .reset-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .find-route-btn {
+        width: 100%; padding: 12px;
+        margin-top: 12px;
+        background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+        color: white;
+        border: none; border-radius: 8px;
+        font-weight: 600; cursor: pointer;
+        transition: all 0.2s;
+        animation: slideIn 0.4s ease-out;
+    }
+    .find-route-btn:hover { background: linear-gradient(135deg, #2563EB 0%, #1D4ED8 100%); transform: translateY(-1px); }
+    .find-route-btn:active { transform: translateY(0); }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Coordinates Box */
+    .coordinates-box {
+        position: absolute; top: 20px; right: 20px; z-index: 999;
+        padding: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(12px);
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        border: 1px solid rgba(255,255,255,0.6);
+        animation: slideIn 0.4s ease-out;
+        min-width: 280px;
+    }
+
+    .coord-item {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 12px;
+    }
+
+    .coord-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .coord-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        color: #64748b;
+        letter-spacing: 0.05em;
+    }
+
+    .coord-value {
+        font-size: 0.875rem;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        color: #0f172a;
+        word-break: break-all;
+    }
 </style>
