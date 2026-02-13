@@ -4,7 +4,8 @@
 	import 'leaflet/dist/leaflet.css';
 	import type { LatLng, Map, Marker } from 'leaflet';
 	import { handleMapClick, type MapState, resetMap } from './quietRouteMap.client';
-	import CoordinatesBox from './CoordinatesBox.svelte';
+	import CoordinatesBox from '../CoordinateBox/CoordinatesBox.svelte';
+	import type { RouteResponse } from './types';
 
 	import { browser } from '$app/environment';
 
@@ -93,9 +94,14 @@
 				throw new Error(`HTTP error! status: ${response.status}`);
 			}
 
-			const data = await response.json();
+			const data: RouteResponse = await response.json();
 			console.log('Route data received:', data);
-			statusText = `Route found with ${data.properties?.waypoints || 0} waypoints!`;
+
+			const waypoints = data.geojson.properties.waypoints;
+			const distanceKm = data.geojson.properties.distanceKm;
+
+			statusText = `Route found with ${waypoints} waypoints!`;
+			alert(`Route Found!\n\nWaypoints: ${waypoints}\nDistance: ${distanceKm} km`);
 		} catch (error) {
 			console.error('Error fetching route:', error);
 			statusText = 'Error finding route. Please try again.';
