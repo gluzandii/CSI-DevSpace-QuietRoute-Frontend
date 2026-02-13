@@ -56,6 +56,19 @@
 		}
 	}
 
+	function selectPlace(feature: any) {
+		if (!feature?.geometry?.coordinates || !map || !L) return;
+
+		const [lon, lat] = feature.geometry.coordinates as [number, number];
+		const name = feature?.properties?.name ?? feature?.properties?.street ?? 'Selected place';
+
+		map.flyTo([lat, lon], 16, { animate: true });
+		L.marker([lat, lon]).addTo(map).bindPopup(name).openPopup();
+
+		searchResults = [];
+		searchQuery = name;
+	}
+
 	type RouteStyle = 'dotted' | 'solid';
 	const routeStyle: RouteStyle = 'dotted';
 
@@ -309,6 +322,7 @@
 				placeholder="Search for a place"
 				autocomplete="off"
 				bind:value={searchQuery}
+				oninput={handleSearch}
 			/>
 
 			{#if searchResults.length}
@@ -317,7 +331,7 @@
 						{@const name = feature?.properties?.name ?? 'Unknown place'}
 						{@const location = feature?.properties?.city ?? feature?.properties?.district ?? ''}
 						<li role="option" aria-selected="false">
-							<button type="button" class="search-option">
+							<button type="button" class="search-option" onclick={() => selectPlace(feature)}>
 								<span class="place-name">{name}</span>
 								{#if location}
 									<span class="place-location">{location}</span>
