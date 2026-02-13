@@ -48,13 +48,18 @@ export async function handleMapClick(
     state: MapState,
     updateState: (updates: Partial<MapState>) => void
 ) {
-    let finalLatLng = e.latlng;
-
     // Check if point is near a road and relocate if needed
     const nearestRoad = await checkNearestRoad(e.latlng.lat, e.latlng.lng);
-    if (nearestRoad) {
-        finalLatLng = L.latLng(nearestRoad.lat, nearestRoad.lon);
+
+    if (!nearestRoad) {
+        alert('❌ No road nearby\n\nPlease select a location closer to a road for better routing.');
+        updateState({
+            statusText: 'Invalid location. Please click near a road.'
+        });
+        return;
     }
+
+    const finalLatLng = L.latLng(nearestRoad.lat, nearestRoad.lon);
 
     if (!state.startMarker) {
         const marker = L.marker(finalLatLng).addTo(map).bindPopup('Start (click to remove)').openPopup();

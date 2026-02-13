@@ -59,8 +59,8 @@
 		};
 	});
 
-	function handleMapClickWrapper(e: { latlng: LatLng }) {
-		handleMapClick(e, map, L, { statusText, startMarker, endMarker }, updateState);
+	async function handleMapClickWrapper(e: { latlng: LatLng }) {
+		await handleMapClick(e, map, L, { statusText, startMarker, endMarker }, updateState);
 	}
 
 	function resetMapWrapper() {
