@@ -23,9 +23,19 @@
 	// Helper to update state
 	const updateState = (updates: Partial<MapState>) => {
 		if (updates.statusText !== undefined) statusText = updates.statusText;
-		if (updates.startMarker !== undefined) startMarker = updates.startMarker;
-		if (updates.endMarker !== undefined) endMarker = updates.endMarker;
+		if (updates.startMarker !== undefined) {
+			// Remove old marker from map if exists
+			if (startMarker) map.removeLayer(startMarker);
+			startMarker = updates.startMarker;
+		}
+		if (updates.endMarker !== undefined) {
+			// Remove old marker from map if exists
+			if (endMarker) map.removeLayer(endMarker);
+			endMarker = updates.endMarker;
+		}
 	};
+
+	// ...existing code...
 
 	onMount(() => {
 		// Dynamic import for SSR compatibility
