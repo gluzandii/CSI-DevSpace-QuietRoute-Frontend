@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import 'leaflet/dist/leaflet.css';
 	import type { LatLng, Map, Marker } from 'leaflet';
+	import { handleMapClick, type MapState, resetMap } from './quietRouteMap.client';
 
 	import { browser } from '$app/environment';
 
@@ -19,6 +20,13 @@
 	let startMarker = $state<Marker | null>(null);
 	let endMarker = $state<Marker | null>(null);
 
+	// Helper to update state
+	const updateState = (updates: Partial<MapState>) => {
+		if (updates.statusText !== undefined) statusText = updates.statusText;
+		if (updates.startMarker !== undefined) startMarker = updates.startMarker;
+		if (updates.endMarker !== undefined) endMarker = updates.endMarker;
+	};
+
 	onMount(() => {
 		// Dynamic import for SSR compatibility
 		(async () => {
@@ -31,7 +39,7 @@
 					attribution: '&copy; OpenStreetMap contributors'
 				}).addTo(map);
 
-				map.on('click', handleMapClick);
+				map.on('click', handleMapClickWrapper);
 			}
 		})();
 
@@ -40,24 +48,12 @@
 		};
 	});
 
-	function handleMapClick(e: { latlng: LatLng }) {
-		if (!startMarker) {
-			startMarker = L.marker(e.latlng).addTo(map).bindPopup("Start").openPopup();
-			statusText = "Start set! Click again for destination.";
-		} else if (!endMarker) {
-			endMarker = L.marker(e.latlng).addTo(map).bindPopup("Destination").openPopup();
-			statusText = "Both markers set!";
-		}
+	function handleMapClickWrapper(e: { latlng: LatLng }) {
+		handleMapClick(e, map, L, { statusText, startMarker, endMarker }, updateState);
 	}
 
-	function resetMap() {
-		if (startMarker) map.removeLayer(startMarker);
-		if (endMarker) map.removeLayer(endMarker);
-
-		startMarker = null;
-		endMarker = null;
-
-		statusText = "Click the map to set markers.";
+	function resetMapWrapper() {
+		resetMap(map, { statusText, startMarker, endMarker }, updateState);
 	}
 </script>
 
@@ -75,7 +71,7 @@
 		<button
 			class="reset-btn"
 			disabled={!startMarker && !endMarker}
-			onclick={resetMap}
+			onclick={resetMapWrapper}
 		>
 			Reset Map
 		</button>
