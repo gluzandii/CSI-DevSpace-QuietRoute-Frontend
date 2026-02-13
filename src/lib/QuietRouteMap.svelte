@@ -65,6 +65,42 @@
 	function resetMapWrapper() {
 		resetMap(map, { statusText, startMarker, endMarker }, updateState);
 	}
+
+	async function findRoute() {
+		if (!startMarker || !endMarker) return;
+
+		const startLatLng = startMarker.getLatLng();
+		const endLatLng = endMarker.getLatLng();
+
+		const requestBody = {
+			startLat: startLatLng.lat,
+			startLon: startLatLng.lng,
+			endLat: endLatLng.lat,
+			endLon: endLatLng.lng
+		};
+
+		try {
+			statusText = 'Finding route...';
+			const response = await fetch('http://localhost:3000/route', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify(requestBody)
+			});
+
+			if (!response.ok) {
+				throw new Error(`HTTP error! status: ${response.status}`);
+			}
+
+			const data = await response.json();
+			console.log('Route data received:', data);
+			statusText = `Route found with ${data.properties?.waypoints || 0} waypoints!`;
+		} catch (error) {
+			console.error('Error fetching route:', error);
+			statusText = 'Error finding route. Please try again.';
+		}
+	}
 </script>
 
 <main class="app-container">
@@ -91,6 +127,7 @@
 		<button
 			class="find-route-btn"
 			transition:fly={{ y: -100, duration: 500, opacity: 1 }}
+			onclick={findRoute}
 		>
 			Find Route
 		</button>
