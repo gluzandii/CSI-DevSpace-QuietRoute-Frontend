@@ -132,21 +132,28 @@
 
 	onMount(() => {
 		// Dynamic import for SSR compatibility
-		(async () => {
-			L = await import('leaflet');
+		   (async () => {
+			   L = await import('leaflet');
 
-			if (mapContainer) {
-				map = L.map(mapContainer, { zoomControl: false }).setView([12.9716, 77.5946], 13);
+			   // Fix Leaflet marker icon paths for production
+			   L.Icon.Default.mergeOptions({
+				   iconRetinaUrl: '/leaflet-images/marker-icon-2x.png',
+				   iconUrl: '/leaflet-images/marker-icon.png',
+				   shadowUrl: '/leaflet-images/marker-shadow.png'
+			   });
 
-				L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-					attribution: '&copy; OpenStreetMap contributors'
-				}).addTo(map);
+			   if (mapContainer) {
+				   map = L.map(mapContainer, { zoomControl: false }).setView([12.9716, 77.5946], 13);
 
-				routeLayerGroup = L.layerGroup().addTo(map);
+				   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+					   attribution: '&copy; OpenStreetMap contributors'
+				   }).addTo(map);
 
-				map.on('click', handleMapClickWrapper);
-			}
-		})();
+				   routeLayerGroup = L.layerGroup().addTo(map);
+
+				   map.on('click', handleMapClickWrapper);
+			   }
+		   })();
 
 		return () => {
 			if (map) map.remove();
