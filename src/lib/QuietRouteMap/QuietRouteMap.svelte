@@ -3,7 +3,13 @@
 	import { fly, fade } from 'svelte/transition';
 	import 'leaflet/dist/leaflet.css';
 	import type { LatLng, LayerGroup, Map, Marker, Polyline } from 'leaflet';
-	import { handleMapClick, type MapState, resetMap } from './quietRouteMap.client';
+	import {
+		handleMapClick,
+		type MapState,
+		removeEndMarker,
+		removeStartMarker,
+		resetMap
+	} from './quietRouteMap.client';
 	import CoordinatesBox from '../CoordinateBox/CoordinatesBox.svelte';
 	import type { RouteMetadata, RouteResponse } from './types';
 
@@ -63,7 +69,29 @@
 		const name = feature?.properties?.name ?? feature?.properties?.street ?? 'Selected place';
 
 		map.flyTo([lat, lon], 16, { animate: true });
-		L.marker([lat, lon]).addTo(map).bindPopup(name).openPopup();
+		if (!startMarker) {
+			const marker = L.marker([lat, lon]).addTo(map).bindPopup('Start (click to remove)');
+			marker.openPopup();
+			marker.on('click', (event) => {
+				event.originalEvent.stopPropagation();
+				removeStartMarker(map, updateState);
+			});
+			updateState({
+				startMarker: marker,
+				statusText: 'Start set! Click again for destination.'
+			});
+		} else if (!endMarker) {
+			const marker = L.marker([lat, lon]).addTo(map).bindPopup('Destination (click to remove)');
+			marker.openPopup();
+			marker.on('click', (event) => {
+				event.originalEvent.stopPropagation();
+				removeEndMarker(map, { statusText, startMarker, endMarker }, updateState);
+			});
+			updateState({
+				endMarker: marker,
+				statusText: 'Both markers set!'
+			});
+		}
 
 		searchResults = [];
 		searchQuery = name;
