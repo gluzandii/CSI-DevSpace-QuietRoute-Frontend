@@ -17,7 +17,6 @@ export function handleMapClick(
 		const marker = L.marker(e.latlng).addTo(map).bindPopup('Start (click to remove)').openPopup();
 		marker.on('click', (event) => {
 			event.originalEvent.stopPropagation();
-			if (state.startMarker) map.removeLayer(state.startMarker);
 			removeStartMarker(map, updateState);
 		});
 		updateState({
@@ -31,7 +30,6 @@ export function handleMapClick(
 			.openPopup();
 		marker.on('click', (event) => {
 			event.originalEvent.stopPropagation();
-			if (state.endMarker) map.removeLayer(state.endMarker);
 			removeEndMarker(map, state, updateState);
 		});
 		updateState({
