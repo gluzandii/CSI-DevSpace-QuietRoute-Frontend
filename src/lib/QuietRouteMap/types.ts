@@ -1,18 +1,29 @@
 export interface RouteResponse {
-	geojson: {
-		geometry: {
-			coordinates: number[][];
-			type: string;
-		};
-		properties: {
-			costDistanceRatio: string;
-			distanceKm: string;
-			distanceMeters: string;
-			routeType: string;
-			safetyCost: string;
-			waypoints: number;
-		};
-		type: string;
-	};
-	message: string;
+    geojson: {
+        geometry: {
+            coordinates: number[][];
+            type: string;
+        };
+        properties: {
+            costDistanceRatio: string;
+            distanceKm: string;
+            distanceMeters: string;
+            routeType: string;
+            safetyCost: string;
+            waypoints: number;
+        };
+        type: string;
+    };
+    message: string;
+}
+
+export interface NearestRoadCoord {
+    lat: number;
+    lon: number;
+    distanceMeters: number;
+}
+
+export interface NearestRoadResponse {
+    coord: NearestRoadCoord | null;
+    message: string;
 }
