@@ -14,7 +14,22 @@ export interface RouteResponse {
         };
         type: string;
     };
+    metadata: RouteMetadata;
     message: string;
+}
+
+export interface RouteMetadata {
+    totalDistanceMeters: number;
+    averageSafetyScore: number;
+    safetyPercentage: number;
+    litSegmentsCount: number;
+    totalSegments: number;
+    litPercentage: number;
+    nearestPoliceStartMeters: number;
+    nearestPoliceEndMeters: number;
+    nearestLightStartMeters: number;
+    nearestLightEndMeters: number;
+    safetyRating: string;
 }
 
 export interface NearestRoadCoord {

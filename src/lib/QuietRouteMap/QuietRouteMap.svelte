@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { fly } from 'svelte/transition';
+	import { fly, fade } from 'svelte/transition';
 	import 'leaflet/dist/leaflet.css';
 	import type { LatLng, LayerGroup, Map, Marker, Polyline } from 'leaflet';
 	import { handleMapClick, type MapState, resetMap } from './quietRouteMap.client';
 	import CoordinatesBox from '../CoordinateBox/CoordinatesBox.svelte';
-	import type { RouteResponse } from './types';
+	import type { RouteMetadata, RouteResponse } from './types';
 
 	import { browser } from '$app/environment';
 
@@ -24,12 +24,15 @@
 	let startMarker = $state<Marker | null>(null);
 	let endMarker = $state<Marker | null>(null);
 	let routePolyline = $state<Polyline | null>(null);
+	let routeMetadata = $state<RouteMetadata | null>(null);
 
 	type RouteStyle = 'dotted' | 'solid';
 	const routeStyle: RouteStyle = 'dotted';
 
 	function isValidLatLon(lat: number, lon: number): boolean {
-		return Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180;
+		return (
+			Number.isFinite(lat) && Number.isFinite(lon) && Math.abs(lat) <= 90 && Math.abs(lon) <= 180
+		);
 	}
 
 	function endpointScore(
@@ -90,11 +93,27 @@
 		if (routeLayerGroup) routeLayerGroup.clearLayers();
 		if (routePolyline && map) map.removeLayer(routePolyline);
 		routePolyline = null;
+		routeMetadata = null;
+	}
+
+	function formatPercent(value: number): string {
+		if (!Number.isFinite(value)) return '0%';
+		const decimals = value % 1 === 0 ? 0 : 1;
+		return `${value.toFixed(decimals)}%`;
+	}
+
+	function formatMeters(value: number): string {
+		if (!Number.isFinite(value)) return '0m';
+		return `${Math.round(value)}m`;
 	}
 
 	// Helper to update state
 	const updateState = (updates: Partial<MapState>) => {
 		if (updates.statusText !== undefined) statusText = updates.statusText;
+
+		const nextStartMarker = updates.startMarker !== undefined ? updates.startMarker : startMarker;
+		const nextEndMarker = updates.endMarker !== undefined ? updates.endMarker : endMarker;
+
 		if (updates.startMarker !== undefined) {
 			// Remove old marker from map if it exists
 			if (startMarker) map.removeLayer(startMarker);
@@ -106,7 +125,7 @@
 			endMarker = updates.endMarker;
 		}
 
-		if (!startMarker || !endMarker) {
+		if (!nextStartMarker || !nextEndMarker) {
 			clearRoutePlot();
 		}
 	};
@@ -148,7 +167,10 @@
 	}
 
 	async function findRoute() {
-		if (!startMarker || !endMarker) return;
+		if (!startMarker || !endMarker) {
+			clearRoutePlot();
+			return;
+		}
 
 		const startLatLng = startMarker.getLatLng();
 		const endLatLng = endMarker.getLatLng();
@@ -183,6 +205,8 @@
 			// Remove existing route if any
 			clearRoutePlot();
 
+			routeMetadata = data.metadata ?? null;
+
 			if (!routeLayerGroup) {
 				routeLayerGroup = L.layerGroup().addTo(map);
 			}
@@ -195,6 +219,7 @@
 			);
 
 			if (coordinates.length < 2) {
+				routeMetadata = null;
 				statusText = 'Route received but contained invalid coordinates.';
 				return;
 			}
@@ -225,6 +250,7 @@
 			statusText = `Route found with ${waypoints} waypoints (${distanceKm} km).`;
 		} catch (error) {
 			console.error('Error fetching route:', error);
+			routeMetadata = null;
 			statusText = 'Error finding route. Please try again.';
 		}
 	}
@@ -257,6 +283,56 @@
 	{/if}
 
 	<CoordinatesBox {endMarker} {startMarker} />
+
+	{#if routeMetadata}
+		<div class="route-stats-box" transition:fade={{ duration: 400 }}>
+			<div class="stats-title">Route Stats</div>
+			<div class="stats-grid">
+				<div class="stats-item">
+					<span class="stats-label">Total distance</span>
+					<span class="stats-value">{formatMeters(routeMetadata.totalDistanceMeters)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Average safety score</span>
+					<span class="stats-value">{routeMetadata.averageSafetyScore.toFixed(2)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Safety percentage</span>
+					<span class="stats-value">{formatPercent(routeMetadata.safetyPercentage)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Lit segments</span>
+					<span class="stats-value">
+						{routeMetadata.litSegmentsCount} / {routeMetadata.totalSegments}
+					</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Well-lit percentage</span>
+					<span class="stats-value">{formatPercent(routeMetadata.litPercentage)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Nearest police (start)</span>
+					<span class="stats-value">{formatMeters(routeMetadata.nearestPoliceStartMeters)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Nearest police (end)</span>
+					<span class="stats-value">{formatMeters(routeMetadata.nearestPoliceEndMeters)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Nearest light (start)</span>
+					<span class="stats-value">{formatMeters(routeMetadata.nearestLightStartMeters)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Nearest light (end)</span>
+					<span class="stats-value">{formatMeters(routeMetadata.nearestLightEndMeters)}</span>
+				</div>
+				<div class="stats-item">
+					<span class="stats-label">Safety rating</span>
+					<span class="stats-value">{routeMetadata.safetyRating}</span>
+				</div>
+			</div>
+		</div>
+	{/if}
 
 	<div bind:this={mapContainer} class="map-view" role="application"></div>
 </main>
@@ -329,6 +405,57 @@
 	.reset-btn:disabled {
 		opacity: 0.5;
 		cursor: not-allowed;
+	}
+
+	.route-stats-box {
+		position: absolute;
+		bottom: 20px;
+		left: 20px;
+		z-index: 999;
+		width: 320px;
+		max-height: 45vh;
+		overflow: auto;
+		padding: 16px;
+		background: rgba(255, 255, 255, 0.95);
+		backdrop-filter: blur(12px);
+		border-radius: 12px;
+		box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+		border: 1px solid rgba(255, 255, 255, 0.6);
+	}
+	.stats-title {
+		font-size: 0.85rem;
+		font-weight: 700;
+		letter-spacing: 0.08em;
+		text-transform: uppercase;
+		color: #64748b;
+		margin-bottom: 12px;
+	}
+	.stats-grid {
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 10px;
+	}
+	.stats-item {
+		display: flex;
+		flex-direction: column;
+		gap: 4px;
+		padding: 8px 10px;
+		border-radius: 10px;
+		background: rgba(248, 250, 252, 0.9);
+		border: 1px solid rgba(226, 232, 240, 0.9);
+	}
+	.stats-label {
+		font-size: 0.7rem;
+		font-weight: 700;
+		text-transform: uppercase;
+		color: #94a3b8;
+		letter-spacing: 0.06em;
+	}
+	.stats-value {
+		font-size: 0.9rem;
+		font-weight: 600;
+		color: #0f172a;
+		word-break: break-word;
 	}
 
 	.find-route-btn {
