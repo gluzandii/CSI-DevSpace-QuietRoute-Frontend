@@ -29,6 +29,33 @@
 	let searchResults = $state<any[]>([]);
 	let isSearching = $state(false);
 
+	async function handleSearch() {
+		if (searchQuery.length < 3) {
+			searchResults = [];
+			return;
+		}
+
+		isSearching = true;
+		try {
+			const query = encodeURIComponent(searchQuery.trim());
+			const response = await fetch(
+				`https://photon.komoot.io/api/?q=${query}&bbox=77.34,12.75,77.85,13.15&limit=5`
+			);
+
+			if (!response.ok) {
+				throw new Error(`Photon search failed: ${response.status}`);
+			}
+
+			const data = await response.json();
+			searchResults = Array.isArray(data?.features) ? data.features : [];
+		} catch (error) {
+			console.error('Search error:', error);
+			searchResults = [];
+		} finally {
+			isSearching = false;
+		}
+	}
+
 	type RouteStyle = 'dotted' | 'solid';
 	const routeStyle: RouteStyle = 'dotted';
 
